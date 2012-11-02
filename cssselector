@@ -1,0 +1,90 @@
+#!/usr/bin/env perl
+use Mojolicious::Lite;
+use Mojo::DOM;
+use Data::Dumper;
+
+# Documentation browser under "/perldoc"
+plugin 'PODRenderer';
+
+get '/' => sub {
+  my $self = shift;
+  $self->render('index');
+};
+
+post '/getmatch' => sub {
+  my $self  = shift;
+  my $css3  = $self->param('css3');
+  my $dom   = Mojo::DOM->new($self->param('match'));
+
+  my @result = $dom->find($css3)->each;
+  my $count  = @result;
+
+  $self->render( template => 'results', result => \@result, count => $count );
+};
+
+app->start;
+__DATA__
+
+@@ index.html.ep
+% layout 'default';
+% title 'Mojo CSS Path Selector';
+<h1>Mojolicious CSS Selector Tester</h1>
+<p>Use the form below to test the validity of your CSS selector pattern against
+any given HTML snippet.</p>
+
+
+<form method="post" action="/getmatch">
+<label>Enter a CSS Selector:</label>
+<input type="text" name="css3" value="" id="css3" /><br>
+<label>Enter HTML to match:</label>
+<textarea name="match" id="match"></textarea><br>
+<input id="submit" type="submit" value="Run test &raquo;" class="btn btn-primary" />
+
+<div id="result"></div>
+
+@@ results.html.ep
+
+<h2><%= $count %> Matches:</h2>
+<ol>
+% foreach my $res (@$result) {
+	<li><code>
+	%= $res
+	</code></li>
+% }
+</ol>
+
+
+@@ layouts/default.html.ep
+<!DOCTYPE html>
+<html>
+  <head><title><%= title %></title>
+	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
+	<style type="text/css">
+		li { margin-bottom: 22px;}
+	</style>
+  </head>
+  <body>
+  	<div class="container">
+  		<div class="row">
+  		<%= content %>
+  		</div>
+  	</div>
+  </body>
+  <footer>Powered by <a href="http://mojolicio.us/">Mojolicious</a></footer>
+  <script src="http://code.jquery.com/jquery.min.js"></script>
+  <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+  <script type="text/javascript">
+  	$("#submit").click(function(e) {
+  		e.preventDefault();
+  		$.ajax({
+  			url: "/getmatch",
+  			type: "POST",
+  			data: { match : $("#match").val(), css3 : $("#css3").val() },
+  			dataType: "html",
+  			success: function(result) {
+  				$('#result').html(result);
+  			}
+  			});
+  		});
+  </script>
+</html>

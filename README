@@ -1,0 +1,10 @@
+Simple CSS3 Path Selector
+
+In this brave new world of using CSS3 path selectors rather than obtuse regular
+expressions to parse our scraped & crawled HTML documents, you'd think there 
+would be a bunch of decent online testing tools to help us out right?
+
+Well I couldn't find any so here's a simple one which has no dependencies outside
+of Perl & Mojolicious.
+
+Online demo at http://mojo-css.herokuapp.com/
