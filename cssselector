@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 use Mojolicious::Lite;
 use Mojo::DOM;
+use Mojo::UserAgent;
 use Data::Dumper;
 
 # Documentation browser under "/perldoc"
@@ -14,7 +15,20 @@ get '/' => sub {
 post '/getmatch' => sub {
   my $self  = shift;
   my $css3  = $self->param('css3');
-  my $dom   = Mojo::DOM->new($self->param('match'));
+  my $match_url  = $self->param('match_url');
+  my $match_html = $self->param('match_html');
+  my $dom;
+  if ($match_url ne '') {
+    my $ua = Mojo::UserAgent->new;
+    my $tx = $ua->get($match_url);
+    if (my $res = $tx->success) {
+      $dom = $res->dom;
+    } else {
+      $self->render_exception("Error fetching URL!");
+    }
+  } else {
+    $dom   = Mojo::DOM->new($match_html);
+  }
 
   my @result = $dom->find($css3)->each;
   my $count  = @result;
@@ -29,18 +43,43 @@ __DATA__
 % layout 'default';
 % title 'Mojo CSS Path Selector';
 <h1>Mojolicious CSS Selector Tester</h1>
-<p>Use the form below to test the validity of your CSS selector pattern against
-any given HTML snippet.</p>
+<p>Test the validity of your CSS selector pattern against a URL or HTML snippet:</p>
 
 
-<form method="post" action="/getmatch">
-<label>Enter a CSS Selector:</label>
-<input type="text" name="css3" value="" id="css3" /><br>
-<label>Enter HTML to match:</label>
-<textarea name="match" id="match"></textarea><br>
-<input id="submit" type="submit" value="Run test &raquo;" class="btn btn-primary" />
-
+<form method="post" action="/getmatch" class="form-horizontal">
+  <div class="control-group">
+    <label class="control-label">Enter a CSS Selector:</label>
+    <div class="controls">
+      <input type="text" name="css3" value="" id="css3" /><br>
+    </div>
+  </div>
+  <div class="control-group">
+    <label class="control-label">Match type:</label>
+    <div class="controls">
+      <input type="radio" name="type" checked id="radio_url" /> URL 
+      <input type="radio" name="type" id="radio_html" /> HTML
+    </div>
+  </div>
+  <div class="control-group" id="url">
+    <label class="control-label">Enter URL to test:</label>
+    <div class="controls">
+      <input type="text" name="match_url" id="match_url" placeholder="http://" /><br>
+    </div>
+  </div>
+  <div class="control-group" id="html">
+    <label class="control-label">Enter HTML to match:</label>
+    <div class="controls">
+      <textarea name="match_html" id="match_html"></textarea>
+    </div>
+  </div>
+  <div class="control-group">
+    <div class="controls">
+      <button type="submit" id="submit" class="btn btn-primary">Run test &raquo;</button>
+    </div>
+  </div>
+</form>
 <div id="result"></div>
+<footer>Powered by <a href="http://mojolicio.us/">Mojolicious</a></footer>
 
 @@ results.html.ep
 
@@ -61,6 +100,7 @@ any given HTML snippet.</p>
 	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
 	<style type="text/css">
 		li { margin-bottom: 22px;}
+    #html { display:none; }
 	</style>
   </head>
   <body>
@@ -70,7 +110,6 @@ any given HTML snippet.</p>
   		</div>
   	</div>
   </body>
-  <footer>Powered by <a href="http://mojolicio.us/">Mojolicious</a></footer>
   <script src="http://code.jquery.com/jquery.min.js"></script>
   <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
   <script type="text/javascript">
@@ -79,12 +118,24 @@ any given HTML snippet.</p>
   		$.ajax({
   			url: "/getmatch",
   			type: "POST",
-  			data: { match : $("#match").val(), css3 : $("#css3").val() },
+  			data: { 
+          match_url : $("#match_url").val(),
+          match_html : $("#match_html").val(),
+          css3 : $("#css3").val() 
+        },
   			dataType: "html",
   			success: function(result) {
   				$('#result').html(result);
   			}
   			});
   		});
+    $("#radio_url").click(function() {
+      $("#url").show();
+      $("#html").hide();
+    });
+    $("#radio_html").click(function() {
+      $("#url").hide();
+      $("#html").show();
+    });
   </script>
 </html>
